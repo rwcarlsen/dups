@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 var verbose = flag.Bool("v", false, "true to print extra info")
@@ -21,10 +23,19 @@ func main() {
 	var sum [sha1.Size]byte
 	ntot := int64(0)
 
+	if len(files) == 0 {
+		data, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		files = strings.Split(string(data), "\n")
+	}
+
 	for i, fname := range files {
 		fi, err := os.Stat(fname)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			continue
 		}
 		if fi.IsDir() {
 			continue
@@ -32,13 +43,16 @@ func main() {
 
 		f, err := os.Open(fname)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			continue
 		}
 
 		hasher.Reset()
 		n, err := io.Copy(hasher, f)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			f.Close()
+			continue
 		}
 		ntot += n
 
